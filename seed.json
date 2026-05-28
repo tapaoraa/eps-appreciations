@@ -1,0 +1,116 @@
+{
+  "categories": [
+    { "id": "cat1", "nom": "Progrès / Évolution" },
+    { "id": "cat2", "nom": "Habiletés Motrices" },
+    { "id": "cat3", "nom": "Investissement / Participation" },
+    { "id": "cat4", "nom": "Travail / Méthode" },
+    { "id": "cat5", "nom": "Comportement / Attitude" }
+  ],
+  "elements": [
+    {
+      "id": "e1", "categorieId": "cat1",
+      "label": "Progression régulière",
+      "positif": "une nette progression au fil des séances",
+      "ameliorer": "se repose sur ses acquis",
+      "conseil": "redoubler d'efforts en s'investissant régulièrement dans les exercices"
+    },
+    {
+      "id": "e2", "categorieId": "cat1",
+      "label": "Exploitation du potentiel",
+      "positif": "un potentiel mis en valeur",
+      "ameliorer": "résultats en deçà des capacités réelles",
+      "conseil": "élever son niveau d'attente personnel et se challenger"
+    },
+    {
+      "id": "e3", "categorieId": "cat1",
+      "label": "Prise en compte des retours",
+      "positif": "tire profit des retours et bilans",
+      "ameliorer": "n'a pas pris en compte les retours formulés",
+      "conseil": "s'appuyer davantage sur les retours de l'enseignant(e) pour progresser"
+    },
+    {
+      "id": "e4", "categorieId": "cat2",
+      "label": "Qualités athlétiques",
+      "positif": "des qualités athlétiques bien exploitées",
+      "ameliorer": "qualités athlétiques insuffisamment exploitées",
+      "conseil": "s'appuyer sur la confiance dans ses ressources pour aller plus loin"
+    },
+    {
+      "id": "e5", "categorieId": "cat2",
+      "label": "Maîtrise technique",
+      "positif": "des gestes techniques maîtrisés et efficaces",
+      "ameliorer": "manque de précision dans l'exécution des gestes techniques",
+      "conseil": "répéter les gestes pour gagner en automatisme et en précision"
+    },
+    {
+      "id": "e6", "categorieId": "cat2",
+      "label": "Aisance corporelle",
+      "positif": "une aisance corporelle dans les activités abordées",
+      "ameliorer": "des difficultés à transférer les habiletés en situation réelle",
+      "conseil": "analyser les situations avant d'agir pour progresser techniquement"
+    },
+    {
+      "id": "e7", "categorieId": "cat3",
+      "label": "Engagement dans l'effort",
+      "positif": "engagement constant et sérieux dans l'effort physique",
+      "ameliorer": "engagement insuffisant pour performer",
+      "conseil": "se dépasser dans chaque situation proposée"
+    },
+    {
+      "id": "e8", "categorieId": "cat3",
+      "label": "Régularité de participation",
+      "positif": "une participation active et régulière",
+      "ameliorer": "investissement irrégulier selon les séances et activités",
+      "conseil": "maintenir un niveau d'implication constant quelle que soit l'activité"
+    },
+    {
+      "id": "e9", "categorieId": "cat3",
+      "label": "Assiduité",
+      "positif": "présence assidue et ponctuelle",
+      "ameliorer": "absences trop nombreuses",
+      "conseil": "être plus assidu afin de ne pas accumuler de retard dans les apprentissages"
+    },
+    {
+      "id": "e10", "categorieId": "cat4",
+      "label": "Écoute et application des consignes",
+      "positif": "écoute attentive et rigueur dans l'exécution des consignes",
+      "ameliorer": "compréhension des situations insuffisante qui génère des erreurs",
+      "conseil": "ne pas démarrer sans être certain d'avoir compris — demander de reformuler si besoin"
+    },
+    {
+      "id": "e11", "categorieId": "cat4",
+      "label": "Autonomie en atelier",
+      "positif": "autonome et efficace dans les phases de travail",
+      "ameliorer": "autonomie à renforcer lors des ateliers",
+      "conseil": "se mettre au travail immédiatement dès la fin des consignes"
+    },
+    {
+      "id": "e12", "categorieId": "cat4",
+      "label": "Concentration",
+      "positif": "rester centré sur les objectifs de cours",
+      "ameliorer": "une mise en activité tardive",
+      "conseil": "éviter les tâches périphériques qui dispersent et rester centré sur les objectifs"
+    },
+    {
+      "id": "e13", "categorieId": "cat5",
+      "label": "Attitude générale",
+      "positif": "état d'esprit respectueux et bienveillant",
+      "ameliorer": "interactions avec les autres qui manquent de bienveillance et de respect",
+      "conseil": "fournir des efforts de tolérance vis-à-vis des camarades"
+    },
+    {
+      "id": "e14", "categorieId": "cat5",
+      "label": "Dynamisme de groupe",
+      "positif": "présence positive et dynamisante pour le groupe",
+      "ameliorer": "agitation récurrente qui nuit à une évolution sereine en classe",
+      "conseil": "canaliser son énergie au service du groupe plutôt qu'en dissipation"
+    },
+    {
+      "id": "e15", "categorieId": "cat5",
+      "label": "Gestion des frustrations",
+      "positif": "gestion positive des situations de frustration",
+      "ameliorer": "réactions inappropriées en situation de frustration",
+      "conseil": "travailler le self-contrôle dans les situations intenses et prendre du recul"
+    }
+  ]
+}

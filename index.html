@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a4a44">
+  <title>EPS Appréciations</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EPS Appréc.">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { display: none; }
+    * { scrollbar-width: none; }
+    textarea { resize: none; }
+  </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col overflow-hidden">
+
+<!-- TOPBAR -->
+<header class="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 flex-shrink-0 z-40 fixed top-0 left-0 right-0 h-14">
+  <span class="font-bold text-[#1a4a44] text-base whitespace-nowrap">EPS Appréciations</span>
+
+  <button onclick="openModal('modalNouvelleClasse')" class="border border-gray-300 rounded px-2 py-1 text-sm hover:bg-gray-50 whitespace-nowrap flex-shrink-0">+ Classe</button>
+
+  <div id="classeBadges" class="flex gap-1.5 overflow-x-auto flex-shrink-0"></div>
+
+  <div class="ml-auto flex items-center gap-2 flex-shrink-0">
+    <div class="flex rounded overflow-hidden border border-gray-300">
+      <button id="btnVueClasse" onclick="setVue('classe')" class="px-3 py-1 text-sm">Classe</button>
+      <button id="btnVueIndiv" onclick="setVue('individuel')" class="px-3 py-1 text-sm">Individuel</button>
+    </div>
+    <button onclick="openSettings()" class="border border-gray-300 rounded p-1.5 hover:bg-gray-50" title="Réglages">
+      <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+    </button>
+    <button onclick="exportXLSX()" class="border border-gray-300 rounded p-1.5 hover:bg-gray-50" title="Exporter Excel">
+      <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="mt-14 flex-1 overflow-hidden flex flex-col">
+
+  <!-- VUE CLASSE -->
+  <div id="vueClasse" class="hidden flex-1 overflow-auto p-4">
+    <table class="w-full bg-white rounded-lg shadow text-sm border-collapse">
+      <thead>
+        <tr class="border-b border-gray-200">
+          <th class="text-left px-4 py-3 font-semibold text-gray-700 w-48">NOM Prénom</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-700">Appréciation</th>
+          <th class="px-4 py-3 w-12"></th>
+        </tr>
+      </thead>
+      <tbody id="classeTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- VUE INDIVIDUELLE -->
+  <div id="vueIndiv" class="hidden flex-1 flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-[220px] flex-shrink-0 bg-gray-100 border-r border-gray-200 flex flex-col overflow-hidden">
+      <div class="px-4 pt-4 pb-2 flex-shrink-0">
+        <p class="text-xs text-gray-400 uppercase tracking-widest">Élèves</p>
+      </div>
+      <ul id="elevesList" class="flex-1 overflow-auto px-2 pb-4"></ul>
+    </aside>
+
+    <!-- ZONE DROITE -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- Appréciation (PAC) -->
+      <div class="bg-white border-b border-gray-200 p-4 flex gap-3 flex-shrink-0">
+        <textarea id="appreciationTextarea"
+          rows="3"
+          class="flex-1 border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#1a4a44] font-mono"
+          oninput="autoResize(this)"
+          placeholder="Sélectionnez un élève…"></textarea>
+        <button id="btnStatut" onclick="toggleStatut()" class="w-9 h-9 rounded-full flex-shrink-0 self-start mt-0.5 cursor-pointer transition-colors" title="Changer le statut"></button>
+      </div>
+
+      <!-- Pills éléments -->
+      <div class="flex-1 flex flex-col overflow-hidden bg-gray-100 px-4 pt-3">
+        <div id="badgesHeader" class="flex gap-4 mb-2 flex-shrink-0"></div>
+        <div id="badgesGrid" class="flex flex-col gap-4 overflow-auto pb-4"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL RÉGLAGES -->
+<div id="modalReglages" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onclick="backdropClose(event,'modalReglages')">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+      <h2 class="font-semibold text-lg">Réglages</h2>
+      <button onclick="closeModal('modalReglages')" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex border-b px-6 flex-shrink-0">
+      <button class="settings-tab px-4 py-3 text-sm font-medium" data-tab="sauvegarde" onclick="switchTab('sauvegarde')">Sauvegarde</button>
+      <button class="settings-tab px-4 py-3 text-sm font-medium" data-tab="repertoire" onclick="switchTab('repertoire')">Répertoire</button>
+      <button class="settings-tab px-4 py-3 text-sm font-medium" data-tab="classes"    onclick="switchTab('classes')">Classes</button>
+      <button class="settings-tab px-4 py-3 text-sm font-medium" data-tab="eleves"     onclick="switchTab('eleves')">Élèves</button>
+    </div>
+    <div class="flex-1 overflow-auto p-6">
+
+      <!-- Tab Sauvegarde -->
+      <div id="tab-sauvegarde" class="hidden flex gap-4">
+        <div class="flex-1 border border-gray-200 rounded-lg p-4 flex flex-col items-center text-center">
+          <p class="font-medium text-sm mb-1">Télécharger en JSON</p>
+          <p class="text-xs text-gray-500 mb-3">Exporte classes, élèves et appréciations.</p>
+          <button onclick="exportData()" class="mt-auto bg-[#1a4a44] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1a5c52]">Télécharger</button>
+        </div>
+        <div class="flex-1 border border-gray-200 rounded-lg p-4 flex flex-col items-center text-center">
+          <p class="font-medium text-sm mb-1">Charger un JSON</p>
+          <p class="text-xs text-gray-500 mb-3">Remplace classes, élèves et appréciations par le contenu du fichier.</p>
+          <input type="file" id="importJsonFile" accept=".json" class="hidden" onchange="importJSON(event)">
+          <button onclick="document.getElementById('importJsonFile').click()" class="mt-auto border border-gray-300 px-4 py-1.5 rounded text-sm hover:bg-gray-50">Choisir un fichier…</button>
+        </div>
+        <div class="flex-1 border border-red-100 rounded-lg p-4 flex flex-col items-center text-center">
+          <p class="font-medium text-sm mb-1 text-red-600">Réinitialiser les données</p>
+          <p class="text-xs text-gray-500 mb-3">Supprime classes, élèves et appréciations. Irréversible.</p>
+          <button onclick="resetData()" class="mt-auto border border-red-300 text-red-600 px-4 py-1.5 rounded text-sm hover:bg-red-50">Réinitialiser</button>
+        </div>
+      </div>
+
+      <!-- Tab Répertoire -->
+      <div id="tab-repertoire" class="hidden">
+        <div class="flex gap-2 mb-5 pb-4 border-b border-gray-200">
+          <button onclick="exportRepertoire()" class="bg-[#1a4a44] text-white px-3 py-1.5 rounded text-sm hover:bg-[#1a5c52]">Exporter</button>
+          <input type="file" id="importRepertoireFile" accept=".json" class="hidden" onchange="importRepertoire(event)">
+          <button onclick="document.getElementById('importRepertoireFile').click()" class="border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50">Importer</button>
+          <button onclick="resetRepertoire()" class="border border-red-300 text-red-600 px-3 py-1.5 rounded text-sm hover:bg-red-50 ml-auto">Réinitialiser</button>
+        </div>
+        <div class="flex gap-2 mb-5">
+          <input id="newCatNom" type="text" placeholder="Nouvelle catégorie…" class="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1a4a44]"
+            onkeydown="if(event.key==='Enter') addCategorie()">
+          <button onclick="addCategorie()" class="bg-[#1a4a44] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1a5c52]">Ajouter</button>
+        </div>
+        <div id="categoriesList"></div>
+      </div>
+
+      <!-- Tab Classes -->
+      <div id="tab-classes" class="hidden">
+        <div class="flex gap-2 mb-5">
+          <input id="newClasseNom" type="text" placeholder="Nom de la classe" class="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#1a4a44]"
+            onkeydown="if(event.key==='Enter') addClasse()">
+          <button onclick="addClasse()" class="bg-[#1a4a44] text-white px-4 py-1.5 rounded text-sm hover:bg-[#1a5c52]">Ajouter</button>
+        </div>
+        <div id="classesList"></div>
+      </div>
+
+      <!-- Tab Élèves -->
+      <div id="tab-eleves" class="hidden">
+        <div id="settingsClasseBadges" class="flex gap-1.5 flex-wrap mb-4"></div>
+        <p class="text-sm text-gray-600 mb-2">Coller une liste (un élève par ligne) — format <code class="bg-gray-100 px-1 rounded">NOM;Prénom</code> :</p>
+        <textarea id="importTextarea" class="w-full border border-gray-300 rounded p-2 text-sm h-28 mb-2 focus:outline-none focus:border-[#1a4a44]" placeholder="DUPONT;Jean&#10;MARTIN;Sophie&#10;BERNARD;Lucas"></textarea>
+        <button onclick="importEleves()" class="bg-[#1a4a44] text-white px-4 py-2 rounded text-sm hover:bg-[#1a5c52] mb-4">Importer</button>
+        <div id="elevesSettingsList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOUVELLE CLASSE RAPIDE -->
+<div id="modalNouvelleClasse" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onclick="backdropClose(event,'modalNouvelleClasse')">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
+    <h2 class="font-semibold mb-4">Nouvelle classe</h2>
+    <input id="newClasseNomRapide" type="text" placeholder="Ex : 4ème B" class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-4 focus:outline-none focus:border-[#1a4a44]"
+      onkeydown="if(event.key==='Enter') addClasseRapide()">
+    <div class="flex justify-end gap-2">
+      <button onclick="closeModal('modalNouvelleClasse')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Annuler</button>
+      <button onclick="addClasseRapide()" class="px-4 py-2 text-sm bg-[#1a4a44] text-white rounded hover:bg-[#1a5c52]">Créer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── État global ──────────────────────────────────────────────
+const state = { vue: 'individuel', classeId: null, eleveId: null };
+let saveTimer = null;
+
+// ── Persistance ───────────────────────────────────────────────
+function load(key) {
+  try { return JSON.parse(localStorage.getItem('eps_' + key)); } catch { return null; }
+}
+function save(key, data) { localStorage.setItem('eps_' + key, JSON.stringify(data)); }
+function getData(key) { return load(key) ?? []; }
+
+async function fetchSeed() {
+  const res = await fetch('seed.json');
+  if (!res.ok) throw new Error();
+  return res.json();
+}
+
+function initData() {
+  ['classes', 'eleves', 'appreciations'].forEach(k => {
+    if (load(k) === null) save(k, []);
+  });
+}
+
+async function initApp() {
+  initData();
+  if (load('categories') === null || load('elements') === null) {
+    try {
+      const seed = await fetchSeed();
+      if (load('categories') === null) save('categories', seed.categories ?? []);
+      if (load('elements')   === null) save('elements',   seed.elements   ?? []);
+    } catch {
+      if (load('categories') === null) save('categories', []);
+      if (load('elements')   === null) save('elements',   []);
+    }
+  }
+  renderClasseBadges();
+  setVue('individuel');
+}
+
+// ── Appréciations ─────────────────────────────────────────────
+function getApprec(eleveId) {
+  return getData('appreciations').find(a => a.eleveId === eleveId) ?? null;
+}
+
+function saveApprec(eleveId, texte, statut) {
+  const list = getData('appreciations');
+  const idx = list.findIndex(a => a.eleveId === eleveId);
+  if (idx >= 0) { list[idx].texte = texte; list[idx].statut = statut; }
+  else list.push({ id: crypto.randomUUID(), eleveId, texte, statut });
+  save('appreciations', list);
+}
+
+function saveCurrentApprec() {
+  if (!state.eleveId) return;
+  const ta = document.getElementById('appreciationTextarea');
+  const appre = getApprec(state.eleveId);
+  saveApprec(state.eleveId, ta.value, appre?.statut ?? 'a_faire');
+}
+
+// ── Sélections pills par élève ────────────────────────────────
+function getSelections(eleveId) {
+  const all = load('selections') ?? {};
+  return all[eleveId] ?? {};
+}
+
+function saveSelections(eleveId, sels) {
+  const all = load('selections') ?? {};
+  all[eleveId] = sels;
+  save('selections', all);
+}
+
+// ── Compilation PAC ───────────────────────────────────────────
+function compilePAC(eleveId) {
+  const sels = getSelections(eleveId);
+  const elements = getData('elements');
+  const P = [], A = [], C = [];
+
+  elements.forEach(elem => {
+    const st = sels[elem.id];
+    if (st === 'positif') {
+      P.push(elem.positif);
+    } else if (st === 'ameliorer') {
+      A.push(elem.ameliorer);
+      if (elem.conseil) C.push(elem.conseil);
+    }
+  });
+
+  const lines = [];
+  if (P.length) lines.push('P : ' + P.join(' ; '));
+  if (A.length) lines.push('A : ' + A.join(' ; '));
+  if (C.length) lines.push('C : ' + C.join(' ; '));
+  return lines.join('\n');
+}
+
+// ── Pills ─────────────────────────────────────────────────────
+function toggleElement(elemId) {
+  if (!state.eleveId) return;
+  const sels = getSelections(state.eleveId);
+  const current = sels[elemId];
+
+  if (!current)               sels[elemId] = 'positif';
+  else if (current === 'positif') sels[elemId] = 'ameliorer';
+  else                        delete sels[elemId];
+
+  saveSelections(state.eleveId, sels);
+
+  const ta = document.getElementById('appreciationTextarea');
+  ta.value = compilePAC(state.eleveId);
+  autoResize(ta);
+  saveCurrentApprec();
+  renderBadges();
+}
+
+function pillCls(st) {
+  const base = 'rounded-full px-2.5 py-1 text-sm border transition-colors cursor-pointer select-none text-left';
+  if (st === 'positif')   return base + ' bg-emerald-100 text-emerald-800 border-emerald-200';
+  if (st === 'ameliorer') return base + ' bg-orange-100 text-orange-800 border-orange-200';
+  return base + ' bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200';
+}
+
+// ── Vue principale ────────────────────────────────────────────
+function setVue(vue) {
+  state.vue = vue;
+  document.getElementById('vueClasse').classList.toggle('hidden', vue !== 'classe');
+  document.getElementById('vueClasse').classList.toggle('flex', vue === 'classe');
+  document.getElementById('vueIndiv').classList.toggle('hidden', vue !== 'individuel');
+  document.getElementById('vueIndiv').classList.toggle('flex', vue === 'individuel');
+
+  const active   = 'px-3 py-1 text-sm bg-[#1a4a44] text-white';
+  const inactive = 'px-3 py-1 text-sm text-gray-600 hover:bg-gray-50';
+  document.getElementById('btnVueClasse').className = vue === 'classe'     ? active : inactive;
+  document.getElementById('btnVueIndiv').className  = vue === 'individuel' ? active : inactive;
+
+  if (vue === 'classe') renderClasse();
+  else renderIndiv();
+}
+
+// ── Vue Classe ────────────────────────────────────────────────
+function renderClasse() {
+  const eleves = getData('eleves')
+    .filter(e => e.classeId === state.classeId)
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+
+  document.getElementById('classeTableBody').innerHTML = eleves.map(el => {
+    const a    = getApprec(el.id);
+    const done = a?.statut === 'termine';
+    return `<tr class="border-b border-gray-100 hover:bg-gray-50">
+      <td class="px-4 py-0 font-semibold whitespace-nowrap text-sm">${el.nom} <span class="font-normal">${el.prenom}</span></td>
+      <td class="px-4 py-0">
+        <textarea data-eleve="${el.id}"
+          class="w-full border border-gray-200 rounded p-2 text-sm focus:outline-none focus:border-[#1a4a44]"
+          oninput="autoResize(this); debounceSaveTA(this)" rows="2">${a ? esc(a.texte) : ''}</textarea>
+      </td>
+      <td class="px-4 py-0 text-center">
+        <button onclick="toggleStatutClasse('${el.id}')" class="w-9 h-9 rounded-full inline-block ${done ? 'bg-emerald-500' : 'bg-gray-200 border border-gray-300'} hover:opacity-75 transition-opacity" title="${done ? 'Terminé' : 'À faire'}"></button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('#classeTableBody textarea').forEach(autoResize);
+}
+
+function toggleStatutSidebar(eleveId, event) {
+  event.stopPropagation();
+  const a = getApprec(eleveId);
+  saveApprec(eleveId, a?.texte ?? '', a?.statut === 'termine' ? 'a_faire' : 'termine');
+  renderIndiv();
+}
+
+function toggleStatutClasse(eleveId) {
+  const a = getApprec(eleveId);
+  saveApprec(eleveId, a?.texte ?? '', a?.statut === 'termine' ? 'a_faire' : 'termine');
+  renderClasse();
+}
+
+function debounceSaveTA(el) {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const existing = getApprec(el.dataset.eleve);
+    saveApprec(el.dataset.eleve, el.value, existing?.statut ?? 'a_faire');
+  }, 300);
+}
+
+function autoResize(el) {
+  el.style.height = '';
+  if (el.scrollHeight > el.offsetHeight) {
+    el.style.height = el.scrollHeight + 'px';
+  }
+}
+
+// ── Vue Individuelle ──────────────────────────────────────────
+function renderIndiv() {
+  const eleves = getData('eleves')
+    .filter(e => e.classeId === state.classeId)
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+
+  if (!state.eleveId && eleves.length > 0) state.eleveId = eleves[0].id;
+
+  document.getElementById('elevesList').innerHTML = eleves.map(el => {
+    const appre  = getApprec(el.id);
+    const done   = appre?.statut === 'termine';
+    const active = el.id === state.eleveId;
+    return `<li class="flex items-center justify-between gap-2 px-2 py-2 rounded cursor-pointer text-sm select-none ${active ? 'bg-gray-200' : 'hover:bg-gray-200'}" onclick="selectEleve('${el.id}')">
+      <span class="flex-1 min-w-0 text-gray-800"><span class="font-semibold">${el.nom}</span> ${el.prenom}</span>
+      <button onclick="toggleStatutSidebar('${el.id}', event)" class="w-4 h-4 rounded-full flex-shrink-0 cursor-pointer transition-colors ${done ? 'bg-emerald-500' : 'bg-gray-200 border border-gray-300'}"></button>
+    </li>`;
+  }).join('');
+
+  renderAppreciation();
+  renderBadges();
+}
+
+function selectEleve(id) {
+  state.eleveId = id;
+  renderIndiv();
+}
+
+function renderAppreciation() {
+  const eleve = getData('eleves').find(e => e.id === state.eleveId);
+  const ta    = document.getElementById('appreciationTextarea');
+  const btn   = document.getElementById('btnStatut');
+
+  if (!eleve) {
+    ta.value = '';
+    ta.placeholder = 'Sélectionnez un élève…';
+    btn.className = 'w-9 h-9 rounded-full flex-shrink-0 self-start mt-0.5 bg-gray-300 cursor-not-allowed';
+    return;
+  }
+
+  const appre = getApprec(eleve.id);
+  ta.value = appre?.texte ?? '';
+  ta.placeholder = `Rédigez l'appréciation de ${eleve.nom} ${eleve.prenom}…`;
+  autoResize(ta);
+
+  const done = appre?.statut === 'termine';
+  btn.className = `w-9 h-9 rounded-full flex-shrink-0 self-start mt-0.5 cursor-pointer transition-colors ${done ? 'bg-emerald-500' : 'bg-gray-400'}`;
+  btn.title = done ? 'Marquer à faire' : 'Marquer terminé';
+}
+
+function renderBadges() {
+  const categories = getData('categories');
+  const elements   = getData('elements');
+  const sels       = state.eleveId ? getSelections(state.eleveId) : {};
+
+  document.getElementById('badgesHeader').innerHTML =
+    categories.map(cat =>
+      `<div class="flex-1 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">${esc(cat.nom)}</div>`
+    ).join('');
+
+  document.getElementById('badgesGrid').innerHTML = `
+    <div class="flex gap-4">
+      ${categories.map(cat => {
+        const items = elements.filter(e => e.categorieId === cat.id);
+        return `<div class="flex-1 flex flex-col gap-1.5">
+          ${items.map(elem => {
+            const st = sels[elem.id];
+            return `<button onclick="toggleElement('${elem.id}')" class="${pillCls(st)}">${esc(elem.label)}</button>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function toggleStatut() {
+  if (!state.eleveId) return;
+  const appre    = getApprec(state.eleveId);
+  const ta       = document.getElementById('appreciationTextarea');
+  const newStatut = appre?.statut === 'termine' ? 'a_faire' : 'termine';
+  saveApprec(state.eleveId, ta.value, newStatut);
+  renderIndiv();
+}
+
+// ── Badges de classes ─────────────────────────────────────────
+function renderClasseBadges() {
+  const classes = getData('classes');
+  if (!state.classeId || !classes.find(c => c.id === state.classeId)) {
+    state.classeId = classes[0]?.id ?? null;
+  }
+
+  const allEleves = getData('eleves');
+  document.getElementById('classeBadges').innerHTML = classes.map(c => {
+    const active = c.id === state.classeId;
+    const count  = allEleves.filter(e => e.classeId === c.id).length;
+    return `<button onclick="selectClasse('${c.id}')"
+      class="px-3 py-1 rounded-full text-sm whitespace-nowrap flex-shrink-0 transition-colors ${active
+        ? 'bg-[#1a4a44] text-white'
+        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'}">${c.nom} (${count})</button>`;
+  }).join('');
+}
+
+function selectClasse(id) {
+  state.classeId = id;
+  state.eleveId  = null;
+  renderClasseBadges();
+  if (state.vue === 'classe') renderClasse();
+  else renderIndiv();
+}
+
+// ── Textarea — debounce save ──────────────────────────────────
+document.getElementById('appreciationTextarea').addEventListener('input', function() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveCurrentApprec(), 300);
+});
+
+// ── Modales ───────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function backdropClose(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+function openSettings() {
+  renderSettingsEleves();
+  renderSettingsClasses();
+  renderSettingsCategories();
+  switchTab('sauvegarde');
+  openModal('modalReglages');
+}
+
+function switchTab(tab) {
+  ['sauvegarde', 'repertoire', 'classes', 'eleves'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+    const btn = document.querySelector(`.settings-tab[data-tab="${t}"]`);
+    btn.className = t === tab
+      ? 'settings-tab px-4 py-3 text-sm font-medium border-b-2 border-[#1a4a44] text-[#1a4a44]'
+      : 'settings-tab px-4 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700';
+  });
+}
+
+// ── Sauvegarde ────────────────────────────────────────────────
+function resetData() {
+  if (!confirm('Supprimer classes, élèves et appréciations ? Irréversible.')) return;
+  ['classes', 'eleves', 'appreciations', 'selections'].forEach(k => localStorage.removeItem('eps_' + k));
+  initData();
+  state.classeId = null;
+  state.eleveId  = null;
+  renderClasseBadges();
+  renderSettingsEleves();
+  renderSettingsClasses();
+  if (state.vue === 'individuel') renderIndiv(); else renderClasse();
+}
+
+function exportData() {
+  const data = {
+    classes:       getData('classes'),
+    eleves:        getData('eleves'),
+    appreciations: getData('appreciations'),
+    selections:    load('selections') ?? {},
+    categories:    getData('categories'),
+    elements:      getData('elements'),
+    exportedAt:    new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `eps-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      ['classes', 'eleves', 'appreciations', 'categories', 'elements'].forEach(k => { if (data[k]) save(k, data[k]); });
+      if (data.selections) save('selections', data.selections);
+      state.classeId = null;
+      state.eleveId  = null;
+      renderClasseBadges();
+      renderSettingsEleves();
+      renderSettingsClasses();
+      if (state.vue === 'individuel') renderIndiv(); else renderClasse();
+      alert('Données chargées.');
+    } catch { alert('Fichier invalide.'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── Répertoire ────────────────────────────────────────────────
+function exportRepertoire() {
+  const data = { categories: getData('categories'), elements: getData('elements'), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `eps-repertoire-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function importRepertoire(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.categories) save('categories', data.categories);
+      if (data.elements)   save('elements',   data.elements);
+      renderSettingsCategories();
+      if (state.vue === 'individuel') renderBadges();
+      alert('Répertoire chargé.');
+    } catch { alert('Fichier invalide.'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+async function resetRepertoire() {
+  if (!confirm('Réinitialiser le répertoire aux éléments par défaut ? Irréversible.')) return;
+  try {
+    const seed = await fetchSeed();
+    save('categories', seed.categories ?? []);
+    save('elements',   seed.elements   ?? []);
+  } catch {
+    alert('Impossible de charger seed.json.');
+    return;
+  }
+  renderSettingsCategories();
+  if (state.vue === 'individuel') renderBadges();
+}
+
+// ── Réglages — Répertoire (éléments) ─────────────────────────
+function renderSettingsCategories() {
+  const categories = getData('categories');
+  const elements   = getData('elements');
+
+  document.getElementById('categoriesList').innerHTML = categories.map(cat => {
+    const items = elements.filter(e => e.categorieId === cat.id);
+    return `<div class="mb-4 border border-gray-200 rounded-lg p-3">
+      <div class="flex items-center justify-between mb-3">
+        <span class="font-medium text-sm">${esc(cat.nom)}</span>
+        <button onclick="deleteCategorie('${cat.id}')" class="text-xs text-red-400 hover:text-red-600">Supprimer</button>
+      </div>
+      <div class="flex flex-col gap-2 mb-3">
+        ${items.map(elem => `
+          <div class="border border-gray-100 rounded p-2.5 flex items-start gap-2 bg-gray-50">
+            <div class="flex-1 min-w-0 text-xs leading-relaxed">
+              <span class="font-semibold text-gray-800">${esc(elem.label)}</span><br>
+              <span class="text-emerald-700 font-medium">P :</span> <span class="text-gray-600">${esc(elem.positif)}</span><br>
+              <span class="text-orange-700 font-medium">A :</span> <span class="text-gray-600">${esc(elem.ameliorer)}</span>
+              ${elem.conseil ? `<br><span class="text-orange-500 font-medium">C :</span> <span class="text-gray-500">${esc(elem.conseil)}</span>` : ''}
+            </div>
+            <div class="flex gap-0.5 flex-shrink-0 mt-0.5">
+              <button onclick="editElement('${elem.id}')" class="p-1 text-gray-400 hover:text-gray-700" title="Modifier">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/></svg>
+              </button>
+              <button onclick="deleteElement('${elem.id}')" class="p-1 text-gray-400 hover:text-red-500" title="Supprimer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="border border-dashed border-gray-200 rounded p-2.5 flex flex-col gap-1.5 bg-white">
+        <input id="ne-label-${cat.id}"     type="text" placeholder="Label (pill)"                       class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-[#1a4a44]">
+        <input id="ne-positif-${cat.id}"   type="text" placeholder="Texte positif (P :)"               class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-[#1a4a44]">
+        <input id="ne-ameliorer-${cat.id}" type="text" placeholder="Texte à améliorer (A :)"           class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-[#1a4a44]">
+        <input id="ne-conseil-${cat.id}"   type="text" placeholder="Conseil associé (C :) — optionnel" class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-[#1a4a44]">
+        <button onclick="addElement('${cat.id}')" class="text-xs bg-[#1a4a44] text-white px-3 py-1 rounded hover:bg-[#1a5c52] self-end">Ajouter</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addCategorie() {
+  const nom = document.getElementById('newCatNom').value.trim();
+  if (!nom) return;
+  const cats = getData('categories');
+  cats.push({ id: crypto.randomUUID(), nom });
+  save('categories', cats);
+  document.getElementById('newCatNom').value = '';
+  renderSettingsCategories();
+  if (state.vue === 'individuel') renderBadges();
+}
+
+function deleteCategorie(id) {
+  save('categories', getData('categories').filter(c => c.id !== id));
+  save('elements',   getData('elements').filter(e => e.categorieId !== id));
+  renderSettingsCategories();
+  if (state.vue === 'individuel') renderBadges();
+}
+
+function addElement(catId) {
+  const label     = document.getElementById(`ne-label-${catId}`).value.trim();
+  const positif   = document.getElementById(`ne-positif-${catId}`).value.trim();
+  const ameliorer = document.getElementById(`ne-ameliorer-${catId}`).value.trim();
+  const conseil   = document.getElementById(`ne-conseil-${catId}`).value.trim();
+  if (!label || !positif || !ameliorer) return;
+
+  const elements = getData('elements');
+  elements.push({ id: crypto.randomUUID(), categorieId: catId, label, positif, ameliorer, conseil });
+  save('elements', elements);
+
+  document.getElementById(`ne-label-${catId}`).value     = '';
+  document.getElementById(`ne-positif-${catId}`).value   = '';
+  document.getElementById(`ne-ameliorer-${catId}`).value = '';
+  document.getElementById(`ne-conseil-${catId}`).value   = '';
+
+  renderSettingsCategories();
+  if (state.vue === 'individuel') renderBadges();
+}
+
+function editElement(id) {
+  const elements = getData('elements');
+  const elem = elements.find(e => e.id === id);
+  if (!elem) return;
+
+  const newLabel = prompt('Label (pill) :', elem.label);
+  if (newLabel === null) return;
+  const newPositif = prompt('Texte positif (P :) :', elem.positif);
+  if (newPositif === null) return;
+  const newAmeliorer = prompt('Texte à améliorer (A :) :', elem.ameliorer);
+  if (newAmeliorer === null) return;
+  const newConseil = prompt('Conseil associé (C :) — laisser vide si aucun :', elem.conseil ?? '');
+  if (newConseil === null) return;
+
+  elem.label     = newLabel.trim()     || elem.label;
+  elem.positif   = newPositif.trim()   || elem.positif;
+  elem.ameliorer = newAmeliorer.trim() || elem.ameliorer;
+  elem.conseil   = newConseil.trim();
+
+  save('elements', elements);
+  renderSettingsCategories();
+  if (state.vue === 'individuel') renderBadges();
+}
+
+function deleteElement(id) {
+  save('elements', getData('elements').filter(e => e.id !== id));
+  renderSettingsCategories();
+  if (state.vue === 'individuel') renderBadges();
+}
+
+// ── Réglages — Élèves ─────────────────────────────────────────
+function renderSettingsEleves() {
+  const classes = getData('classes');
+  if (!state.classeId || !classes.find(c => c.id === state.classeId)) {
+    state.classeId = classes[0]?.id ?? null;
+  }
+
+  document.getElementById('settingsClasseBadges').innerHTML = classes.map(c => {
+    const active = c.id === state.classeId;
+    return `<button onclick="selectSettingsClasse('${c.id}')"
+      class="px-3 py-1 rounded-full text-sm whitespace-nowrap transition-colors ${active
+        ? 'bg-[#1a4a44] text-white'
+        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'}">${c.nom}</button>`;
+  }).join('');
+
+  const eleves = getData('eleves')
+    .filter(e => e.classeId === state.classeId)
+    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+
+  document.getElementById('elevesSettingsList').innerHTML =
+    `<p class="text-xs text-gray-400 mb-2">${eleves.length} élève(s) dans cette classe</p>` +
+    eleves.map(el => `
+      <div class="flex items-center justify-between py-2 border-b border-gray-100">
+        <span class="text-sm">${el.nom} ${el.prenom}</span>
+        <button onclick="deleteEleve('${el.id}')" class="text-xs text-red-400 hover:text-red-600">Supprimer</button>
+      </div>`).join('');
+}
+
+function selectSettingsClasse(id) {
+  state.classeId = id;
+  state.eleveId  = null;
+  renderClasseBadges();
+  renderSettingsEleves();
+}
+
+function importEleves() {
+  const raw = document.getElementById('importTextarea').value.trim();
+  if (!raw) return;
+  const eleves = getData('eleves');
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    let nom, prenom;
+    [nom, prenom] = line.split(';').map(s => s.trim());
+    if (nom) eleves.push({ id: crypto.randomUUID(), classeId: state.classeId, nom: nom.toUpperCase(), prenom: prenom ?? '' });
+  });
+  save('eleves', eleves);
+  document.getElementById('importTextarea').value = '';
+  renderSettingsEleves();
+  if (state.vue === 'individuel') renderIndiv(); else renderClasse();
+}
+
+function deleteEleve(id) {
+  save('eleves', getData('eleves').filter(e => e.id !== id));
+  if (state.eleveId === id) state.eleveId = null;
+  renderSettingsEleves();
+  if (state.vue === 'individuel') renderIndiv(); else renderClasse();
+}
+
+// ── Réglages — Classes ────────────────────────────────────────
+function renderSettingsClasses() {
+  document.getElementById('classesList').innerHTML = getData('classes').map(c => `
+    <div class="flex items-center justify-between py-2 border-b border-gray-100">
+      <span class="text-sm font-medium">${c.nom}</span>
+      <div class="flex gap-3">
+        <button onclick="renameClasse('${c.id}')" class="text-xs text-blue-500 hover:text-blue-700">Renommer</button>
+        <button onclick="deleteClasse('${c.id}')" class="text-xs text-red-400 hover:text-red-600">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+
+function addClasse() {
+  const nom = document.getElementById('newClasseNom').value.trim();
+  if (!nom) return;
+  const id = crypto.randomUUID();
+  const classes = getData('classes');
+  classes.push({ id, nom });
+  save('classes', classes);
+  document.getElementById('newClasseNom').value = '';
+  state.classeId = id;
+  state.eleveId  = null;
+  renderClasseBadges();
+  renderSettingsClasses();
+}
+
+function addClasseRapide() {
+  const nom = document.getElementById('newClasseNomRapide').value.trim();
+  if (!nom) return;
+  const id = crypto.randomUUID();
+  const classes = getData('classes');
+  classes.push({ id, nom });
+  save('classes', classes);
+  document.getElementById('newClasseNomRapide').value = '';
+  state.classeId = id;
+  state.eleveId  = null;
+  renderClasseBadges();
+  closeModal('modalNouvelleClasse');
+  if (state.vue === 'individuel') renderIndiv(); else renderClasse();
+}
+
+function deleteClasse(id) {
+  const classes = getData('classes').filter(c => c.id !== id);
+  save('classes', classes);
+  if (state.classeId === id) { state.classeId = classes[0]?.id ?? null; state.eleveId = null; }
+  renderClasseBadges();
+  renderSettingsClasses();
+  renderSettingsEleves();
+}
+
+function renameClasse(id) {
+  const classes = getData('classes');
+  const c = classes.find(x => x.id === id);
+  if (!c) return;
+  const newNom = prompt('Nouveau nom de la classe :', c.nom);
+  if (!newNom || newNom === c.nom) return;
+  c.nom = newNom.trim();
+  save('classes', classes);
+  renderClasseBadges();
+  renderSettingsClasses();
+}
+
+// ── Export Excel ──────────────────────────────────────────────
+function exportXLSX() {
+  const wb      = XLSX.utils.book_new();
+  const classes = getData('classes');
+  if (!classes.length) { alert('Aucune classe à exporter.'); return; }
+
+  classes.forEach(cls => {
+    const eleves = getData('eleves')
+      .filter(e => e.classeId === cls.id)
+      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+
+    const rows = [['NOM', 'Prénom', 'Appréciation', 'IA', 'Formule de remplacement']];
+    eleves.forEach(el => {
+      const appre = getApprec(el.id);
+      rows.push([el.nom, el.prenom, appre?.texte ?? '', '', '']);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // Colonne E : remplace [eleve] dans D par le prénom (colonne B)
+    eleves.forEach((_, i) => {
+      const r = i + 2;
+      ws[`E${r}`] = { f: `IF(D${r}="","- - -",SUBSTITUTE(D${r},"[eleve]",B${r}))` };
+    });
+
+    ws['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 45 }, { wch: 45 }, { wch: 45 }];
+    XLSX.utils.book_append_sheet(wb, ws, cls.nom.slice(0, 31));
+  });
+
+  XLSX.writeFile(wb, `eps-appreciations-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+initApp();
+</script>
+</body>
+</html>
